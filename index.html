@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4f1e8" />
+  <title>Faiq Abdillah — Personal Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="wordmark" href="#" aria-label="Kembali ke beranda"><span class="wordmark-mark">F.</span><span>PERSONAL PORTFOLIO</span></a>
+    <div class="topbar-right"><span class="availability-dot"></span><span>OPEN TO MEANINGFUL OPPORTUNITIES</span></div>
+  </header>
+
+  <main class="stage">
+    <div class="intro">
+      <p class="eyebrow">A LITTLE MAP OF MY JOURNEY</p>
+      <h1>Ideas into <em>impact.</em></h1>
+      <p class="intro-copy">Explore the experiences, interests, and ambitions shaping my journey.</p>
+    </div>
+
+    <section class="orbit-scene" id="orbitScene" aria-label="Navigasi portofolio interaktif">
+      <div class="orbit-ring ring-outer"></div>
+      <div class="orbit-ring ring-inner"></div>
+      <div class="orbit-lines" aria-hidden="true"></div>
+
+      <button class="nav-card card-about" data-section="about" style="--delay:0ms">
+        <span class="card-number">01</span><span class="card-icon">✳</span>
+        <span class="card-title">About me</span><span class="card-subtitle">The person behind the work</span><span class="card-arrow">↗</span>
+      </button>
+      <button class="nav-card card-education" data-section="education" style="--delay:60ms">
+        <span class="card-number">02</span><span class="card-icon">⌂</span>
+        <span class="card-title">Education</span><span class="card-subtitle">Academic journey</span><span class="card-arrow">↗</span>
+      </button>
+      <button class="nav-card card-experience" data-section="experience" style="--delay:120ms">
+        <span class="card-number">03</span><span class="card-icon">↗</span>
+        <span class="card-title">Experience</span><span class="card-subtitle">Leadership & contribution</span><span class="card-arrow">↗</span>
+      </button>
+      <button class="nav-card card-policy" data-section="policy" style="--delay:180ms">
+        <span class="card-number">04</span><span class="card-icon">❋</span>
+        <span class="card-title">Policy interests</span><span class="card-subtitle">Environment & governance</span><span class="card-arrow">↗</span>
+      </button>
+      <button class="nav-card card-projects" data-section="projects" style="--delay:240ms">
+        <span class="card-number">05</span><span class="card-icon">▤</span>
+        <span class="card-title">Selected projects</span><span class="card-subtitle">Ideas put into practice</span><span class="card-arrow">↗</span>
+      </button>
+      <button class="nav-card card-impact" data-section="impact" style="--delay:300ms">
+        <span class="card-number">06</span><span class="card-icon">✺</span>
+        <span class="card-title">Leadership & impact</span><span class="card-subtitle">People, initiatives, outcomes</span><span class="card-arrow">↗</span>
+      </button>
+      <button class="nav-card card-achievements" data-section="achievements" style="--delay:360ms">
+        <span class="card-number">07</span><span class="card-icon">◇</span>
+        <span class="card-title">Achievements</span><span class="card-subtitle">Awards & certifications</span><span class="card-arrow">↗</span>
+      </button>
+      <button class="nav-card card-contact" data-section="contact" style="--delay:420ms">
+        <span class="card-number">08</span><span class="card-icon">↝</span>
+        <span class="card-title">Contact</span><span class="card-subtitle">Let's connect</span><span class="card-arrow">↗</span>
+      </button>
+
+      <div class="profile-core" id="profileCore">
+        <div class="core-topline"><span>PORTFOLIO / 2026</span><span class="core-status">● BASED IN INDONESIA</span></div>
+        <div class="avatar" aria-label="Placeholder foto profil"><span>FA</span><i></i></div>
+        <p class="core-kicker">HELLO, I'M</p>
+        <h2>Faiq<br><em>Abdillah.</em></h2>
+        <p class="core-role">Aspiring policy leader<br>Environmental governance · Strategic management</p>
+        <button class="explore-button" id="exploreButton"><span>Explore portfolio</span><b>↗</b></button>
+        <p class="core-hint">A thoughtful journey, still unfolding.</p>
+      </div>
+    </section>
+
+    <div class="bottom-note"><span>SCROLL TO EXPLORE</span><span class="note-line"></span><span>01 — 08</span></div>
+  </main>
+
+  <div class="detail-overlay" id="detailOverlay" aria-hidden="true">
+    <section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <button class="close-button" id="closeButton" aria-label="Tutup panel">×</button>
+      <p class="detail-eyebrow" id="detailEyebrow">PORTFOLIO SECTION</p>
+      <h2 id="detailTitle">About me</h2>
+      <div class="detail-rule"></div>
+      <div id="detailBody" class="detail-body"></div>
+      <div class="detail-footer"><span>FAIQ ABDILLAH</span><span>PERSONAL PORTFOLIO · 2026</span></div>
+    </section>
+  </div>
+
+  <footer class="site-footer"><span>© 2026 Faiq Abdillah</span><span>Designed as a living portfolio <b>✳</b></span></footer>
+  <script src="script.js"></script>
+</body>
+</html>
