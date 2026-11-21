@@ -17,6 +17,7 @@ export default async function handler(req, res) {
 
   if (!token) {
     return res.status(500).json({
+      success: false,
       error: "Notion API key is missing"
     });
   }
@@ -27,17 +28,99 @@ export default async function handler(req, res) {
     "Content-Type": "application/json"
   };
 
+  async function notionRequest(url, options = {}) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+
+      if (response.status === 429 && attempt < 3) {
+        const delay = Number(
+          response.headers.get("Retry-After") || 2
+        );
+
+        await new Promise(resolve =>
+          setTimeout(resolve, delay * 1000)
+        );
+
+        continue;
+      }
+
+      return response;
+    }
+
+    throw new Error("Notion API rate limit exceeded");
+  }
+
+  // Mengambil seluruh isi halaman Notion
+  async function getPageContent(blockId) {
+    let results = [];
+    let cursor = null;
+
+    try {
+      do {
+        const url = new URL(
+          `https://api.notion.com/v1/blocks/${blockId}/children`
+        );
+
+        url.searchParams.set("page_size", "100");
+
+        if (cursor) {
+          url.searchParams.set("start_cursor", cursor);
+        }
+
+        const response = await notionRequest(url.toString());
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          return {
+            success: false,
+            error: data.message || "Page content access failed",
+            results: []
+          };
+        }
+
+        results.push(...data.results);
+        cursor = data.has_more ? data.next_cursor : null;
+
+      } while (cursor);
+
+      // Ambil isi blok bertingkat jika tersedia
+      for (const block of results) {
+        if (block.has_children) {
+          const nested = await getPageContent(block.id);
+
+          block.children = nested.results || [];
+        }
+      }
+
+      return {
+        success: true,
+        results
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        results: []
+      };
+    }
+  }
+
+  // Mengambil data tabel database
   async function getDatabase(id) {
     let results = [];
     let cursor = null;
 
     try {
       do {
-        const response = await fetch(
+        const response = await notionRequest(
           `https://api.notion.com/v1/databases/${id}/query`,
           {
             method: "POST",
-            headers,
             body: JSON.stringify({
               page_size: 100,
               ...(cursor ? { start_cursor: cursor } : {})
@@ -51,7 +134,8 @@ export default async function handler(req, res) {
           return {
             success: false,
             error: data.message || "Database access failed",
-            status: response.status
+            status: response.status,
+            results: []
           };
         }
 
@@ -59,6 +143,14 @@ export default async function handler(req, res) {
         cursor = data.has_more ? data.next_cursor : null;
 
       } while (cursor);
+
+      // Ambil isi halaman setiap entry
+      for (const page of results) {
+        const content = await getPageContent(page.id);
+
+        page.content = content.results;
+        page.content_success = content.success;
+      }
 
       return {
         success: true,
@@ -68,7 +160,8 @@ export default async function handler(req, res) {
     } catch (error) {
       return {
         success: false,
-        error: "Failed to connect to Notion"
+        error: error.message,
+        results: []
       };
     }
   }
