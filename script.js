@@ -1,7 +1,7 @@
 
 /* =========================================================
    FAIQ ABDILLAH — PERSONAL PORTFOLIO
-   PARALLEL LOADING + CONTACT ME
+   PARALLEL LOADING + EDITORIAL POPUP + CONTACT ME
 ========================================================= */
 
 const $ = selector => document.querySelector(selector);
@@ -9,6 +9,7 @@ const $ = selector => document.querySelector(selector);
 const scene = $("#orbitScene");
 const exploreButton = $("#exploreButton");
 const overlay = $("#detailOverlay");
+const detailPanel = overlay?.querySelector(".detail-panel");
 const closeButton = $("#closeButton");
 const title = $("#detailTitle");
 const eyebrow = $("#detailEyebrow");
@@ -101,9 +102,6 @@ let loaderFinished = false;
 let backgroundReady = false;
 let criticalReady = false;
 
-let criticalTask = null;
-let backgroundTask = null;
-
 
 /* =========================================================
    HELPERS
@@ -157,8 +155,7 @@ function updateProgress(percent) {
   const label = loader?.querySelector("small");
 
   if (label) {
-    label.textContent =
-      `LOADING PORTFOLIO · ${Math.floor(value)}%`;
+    label.textContent = `LOADING PORTFOLIO · ${Math.floor(value)}%`;
   }
 }
 
@@ -181,9 +178,7 @@ function rich(items = []) {
     if (a.underline) value = `<u>${value}</u>`;
     if (a.strikethrough) value = `<s>${value}</s>`;
 
-    const url = safeUrl(
-      item.href || item.text?.link?.url
-    );
+    const url = safeUrl(item.href || item.text?.link?.url);
 
     if (url) {
       const external = /^https?:/i.test(url);
@@ -268,12 +263,10 @@ function renderBlock(block) {
 
       return `
         <figure class="article-inline-image">
-          <img
-            src="${esc(file)}"
+          <img src="${esc(file)}"
             alt="${esc(data.caption?.[0]?.plain_text || "Portfolio image")}"
             loading="lazy"
-            decoding="async"
-          >
+            decoding="async">
           <figcaption>${caption}</figcaption>
         </figure>
       `;
@@ -319,7 +312,6 @@ function renderBlocks(blocks = []) {
   }
 
   flush();
-
   return output;
 }
 
@@ -431,29 +423,20 @@ function propertyMarkup(key, property) {
     const url = safeUrl(value);
 
     if (url) {
-      return `
-        <p><strong>${esc(key)}:</strong>
-          <a href="${esc(url)}" target="_blank"
-            rel="noopener noreferrer">${esc(value)}</a>
-        </p>
-      `;
+      return `<p><strong>${esc(key)}:</strong>
+        <a href="${esc(url)}" target="_blank"
+          rel="noopener noreferrer">${esc(value)}</a></p>`;
     }
   }
 
   if (property.type === "email") {
-    return `
-      <p><strong>${esc(key)}:</strong>
-        <a href="mailto:${esc(value)}">${esc(value)}</a>
-      </p>
-    `;
+    return `<p><strong>${esc(key)}:</strong>
+      <a href="mailto:${esc(value)}">${esc(value)}</a></p>`;
   }
 
   if (property.type === "phone_number") {
-    return `
-      <p><strong>${esc(key)}:</strong>
-        <a href="tel:${esc(value)}">${esc(value)}</a>
-      </p>
-    `;
+    return `<p><strong>${esc(key)}:</strong>
+      <a href="tel:${esc(value)}">${esc(value)}</a></p>`;
   }
 
   return `<p><strong>${esc(key)}:</strong> ${esc(value)}</p>`;
@@ -472,22 +455,13 @@ function applyProfile() {
   const page = rows[0];
 
   const about = propertyValue(page, [
-    "aboutme",
-    "about",
-    "bio",
-    "summary",
-    "description"
+    "aboutme", "about", "bio", "summary", "description"
   ]);
 
-  if (about) {
-    profileAbout.textContent = about;
-  }
+  if (about) profileAbout.textContent = about;
 
   const keywords = propertyByMatch(page, [
-    "keyword",
-    "keywords",
-    "focus",
-    "tags"
+    "keyword", "keywords", "focus", "tags"
   ]);
 
   let keywordList = [];
@@ -511,10 +485,7 @@ function applyProfile() {
   }
 
   const frontPhoto = imageProperty(page, [
-    "frontphoto",
-    "landingphoto",
-    "profilephoto",
-    "avatar"
+    "frontphoto", "landingphoto", "profilephoto", "avatar"
   ])[0];
 
   if (frontPhoto && profileAvatar) {
@@ -528,9 +499,7 @@ function applyProfile() {
   }
 
   const logo = imageProperty(page, [
-    "portfoliologo",
-    "brandlogo",
-    "logo"
+    "portfoliologo", "brandlogo", "logo"
   ])[0];
 
   const brandLogo = $("#brandLogo");
@@ -544,37 +513,32 @@ function applyProfile() {
 
 
 /* =========================================================
-   CONTACT ME — PLATFORM IDENTITIES
+   CONTACT ME
 ========================================================= */
 
 function contactLogo(label) {
   const name = normalize(label);
 
   const logos = [
-    ["linkedin", "in", "linkedin"],
-    ["github", "GH", "github"],
-    ["instagram", "ig", "instagram"],
-    ["whatsapp", "wa", "whatsapp"],
-    ["telegram", "tg", "telegram"],
-    ["email", "✉", "email"],
-    ["mail", "✉", "email"],
-    ["website", "↗", "website"],
-    ["portfolio", "↗", "website"]
+    ["linkedin", "in"],
+    ["github", "GH"],
+    ["instagram", "ig"],
+    ["whatsapp", "wa"],
+    ["telegram", "tg"],
+    ["email", "✉"],
+    ["mail", "✉"],
+    ["website", "↗"],
+    ["portfolio", "↗"]
   ];
 
   const match = logos.find(([key]) => name.includes(key));
 
   const logo = match
-    ? { text: match[1], className: match[2] }
-    : {
-        text: String(label).trim().slice(0, 2).toUpperCase(),
-        className: "default"
-      };
+    ? match[1]
+    : String(label).trim().slice(0, 2).toUpperCase();
 
   return `
-    <span class="contact-logo ${logo.className}">
-      ${esc(logo.text)}
-    </span>
+    <span class="contact-logo">${esc(logo)}</span>
   `;
 }
 
@@ -606,17 +570,9 @@ function contactHref(property, value) {
 function contactMarkup(page) {
   const properties = Object.entries(page.properties || {});
   const links = [];
-
-  /*
-    FORMAT A:
-    One platform per database row.
-    Example:
-    Page title: LinkedIn
-    Property: URL
-  */
-
   const platform = pageTitle(page);
 
+  // One platform per database row
   const linkProperty = properties.find(([key, property]) => {
     const name = normalize(key);
 
@@ -645,11 +601,7 @@ function contactMarkup(page) {
     }
   }
 
-  /*
-    FORMAT B:
-    Multiple platform properties in one page.
-  */
-
+  // Multiple platform properties in one row
   if (!links.length) {
     properties.forEach(([key, property]) => {
       if (property.type === "title") return;
@@ -657,47 +609,31 @@ function contactMarkup(page) {
       const value = propText(property);
       const href = contactHref(property, value);
 
-      if (!href) return;
-
-      links.push({
-        label: key,
-        value,
-        href
-      });
+      if (href) {
+        links.push({ label: key, value, href });
+      }
     });
   }
 
-  if (!links.length) {
+  return links.map(item => {
+    const external = /^https?:/i.test(item.href);
+
     return `
-      <p class="empty-state">
-        Contact information is not available yet.
-      </p>
+      <a class="contact-link"
+        href="${esc(item.href)}"
+        ${external ? 'target="_blank" rel="noopener noreferrer"' : ""}>
+
+        ${contactLogo(item.label)}
+
+        <span class="contact-link-text">
+          <strong>${esc(item.label)}</strong>
+          <small>${esc(item.value)}</small>
+        </span>
+
+        <span class="contact-external">↗</span>
+      </a>
     `;
-  }
-
-  return `
-    <div class="contact-list">
-      ${links.map(item => {
-        const external = /^https?:/i.test(item.href);
-
-        return `
-          <a class="contact-link"
-            href="${esc(item.href)}"
-            ${external ? 'target="_blank" rel="noopener noreferrer"' : ''}>
-
-            ${contactLogo(item.label)}
-
-            <span class="contact-link-text">
-              <strong>${esc(item.label)}</strong>
-              <small>${esc(item.value)}</small>
-            </span>
-
-            <span class="contact-external">↗</span>
-          </a>
-        `;
-      }).join("")}
-    </div>
-  `;
+  }).join("");
 }
 
 
@@ -706,7 +642,6 @@ function contactMarkup(page) {
 ========================================================= */
 
 function entryContent(page, source) {
-  // CONTACT ME
   if (source === "contact") {
     return contactMarkup(page);
   }
@@ -715,9 +650,7 @@ function entryContent(page, source) {
 
   if (source === "projects") {
     const logo = imageProperty(page, [
-      "applogo",
-      "projectlogo",
-      "logo"
+      "applogo", "projectlogo", "logo"
     ])[0];
 
     if (logo) {
@@ -731,10 +664,7 @@ function entryContent(page, source) {
     }
 
     const gallery = imageProperty(page, [
-      "projectgallery",
-      "gallery",
-      "screenshots",
-      "projectimages"
+      "projectgallery", "gallery", "screenshots", "projectimages"
     ]);
 
     if (gallery.length) {
@@ -758,9 +688,7 @@ function entryContent(page, source) {
 
   if (source === "profile") {
     const aboutPhoto = imageProperty(page, [
-      "aboutphoto",
-      "aboutimage",
-      "biophoto"
+      "aboutphoto", "aboutimage", "biophoto"
     ])[0];
 
     if (aboutPhoto) {
@@ -824,11 +752,7 @@ function getEntries(key) {
 
 
 function isSectionReady(key) {
-  if (key === "about") {
-    return criticalReady;
-  }
-
-  return backgroundReady;
+  return key === "about" ? criticalReady : backgroundReady;
 }
 
 
@@ -841,6 +765,24 @@ function prepareAllArticles() {
 
   Object.keys(sections).forEach(key => {
     const entries = getEntries(key);
+
+    // CONTACT: one combined list, no article headings
+    if (key === "contact") {
+      const rows = entries
+        .map(item => contactMarkup(item.page))
+        .filter(Boolean)
+        .join("");
+
+      articleCache.contact = [{
+        title: "Contact Me",
+        source: "contact",
+        html: rows
+          ? `<div class="contact-list">${rows}</div>`
+          : `<p class="empty-state">Contact information is not available yet.</p>`
+      }];
+
+      return;
+    }
 
     articleCache[key] = entries.map((item, index) => ({
       ...item,
@@ -903,12 +845,9 @@ async function preloadCriticalImages() {
   await Promise.all(
     list.map(async url => {
       await preloadImage(url);
-
       completed++;
 
-      updateProgress(
-        50 + (completed / list.length) * 40
-      );
+      updateProgress(50 + (completed / list.length) * 40);
     })
   );
 }
@@ -920,6 +859,9 @@ async function preloadCriticalImages() {
 
 function renderSidebar() {
   nav.innerHTML = "";
+
+  // Contact never uses the sidebar
+  if (currentKey === "contact") return;
 
   activeEntries.forEach((entry, index) => {
     const button = document.createElement("button");
@@ -976,7 +918,11 @@ function renderActive() {
   }
 
   const entries = articleCache[currentKey] || [];
-  const item = entries[activeIndex];
+
+  // Contact is always one combined entry
+  const item = currentKey === "contact"
+    ? entries[0]
+    : entries[activeIndex];
 
   if (!item) {
     articleBody.innerHTML = `
@@ -988,6 +934,9 @@ function renderActive() {
   }
 
   articleBody.scrollTop = 0;
+
+  // No sidebar navigation for Contact
+  if (currentKey === "contact") return;
 
   nav.querySelectorAll(".detail-nav-item")
     .forEach((button, index) => {
@@ -1021,12 +970,20 @@ function openSection(key) {
   activeEntries = getEntries(key);
   activeIndex = 0;
 
+  // Activate Contact-specific CSS
+  detailPanel?.classList.toggle(
+    "is-contact",
+    key === "contact"
+  );
+
+  nav.innerHTML = "";
+
   eyebrow.textContent =
     `Portfolio | Section ${section.number} : ${section.title}`;
 
   title.textContent = section.title;
 
-  if (isSectionReady(key)) {
+  if (key !== "contact" && isSectionReady(key)) {
     renderSidebar();
   }
 
@@ -1041,6 +998,10 @@ function openSection(key) {
 
 function closeSection() {
   overlay.classList.remove("is-visible");
+
+  // Reset Contact-specific CSS
+  detailPanel?.classList.remove("is-contact");
+
   overlay.setAttribute("aria-hidden", "true");
 }
 
@@ -1079,12 +1040,16 @@ overlay?.addEventListener("click", event => {
 });
 
 
-/* REMOVE OLD SIDEBAR ARROWS */
+/* =========================================================
+   REMOVE OLD SIDEBAR ARROWS
+========================================================= */
 
 $("#sidebarUp")?.closest(".sidebar-controls")?.remove();
 
 
-/* KEYBOARD NAVIGATION */
+/* =========================================================
+   KEYBOARD NAVIGATION
+========================================================= */
 
 document.addEventListener("keydown", event => {
   if (
@@ -1097,6 +1062,9 @@ document.addEventListener("keydown", event => {
 
   if (!overlay.classList.contains("is-visible")) return;
   if (!isSectionReady(currentKey)) return;
+
+  // Contact has no item-by-item navigation
+  if (currentKey === "contact") return;
 
   if (event.key === "ArrowDown") {
     event.preventDefault();
@@ -1208,7 +1176,10 @@ async function loadBackground() {
         Math.max(0, activeEntries.length - 1)
       );
 
-      renderSidebar();
+      if (currentKey !== "contact") {
+        renderSidebar();
+      }
+
       renderActive();
     }
 
@@ -1223,7 +1194,11 @@ async function loadBackground() {
 
     if (overlay.classList.contains("is-visible")) {
       activeEntries = getEntries(currentKey);
-      renderSidebar();
+
+      if (currentKey !== "contact") {
+        renderSidebar();
+      }
+
       renderActive();
     }
 
@@ -1294,9 +1269,10 @@ function showLoadingError(error) {
 async function initializePortfolio() {
   updateProgress(5);
 
-  criticalTask = loadCritical();
+  const criticalTask = loadCritical();
 
-  backgroundTask = loadBackground();
+  // Start background data loading simultaneously
+  loadBackground();
 
   const timeoutTask = new Promise(resolve => {
     setTimeout(() => resolve("timeout"), MAX_LOADING_TIME);
@@ -1311,9 +1287,7 @@ async function initializePortfolio() {
     if (result === "ready") {
       finishLoading();
 
-      console.log(
-        "Critical portfolio assets are ready."
-      );
+      console.log("Critical portfolio assets are ready.");
 
     } else {
       console.warn(
