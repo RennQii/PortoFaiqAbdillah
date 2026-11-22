@@ -1,7 +1,7 @@
 
 /* =========================================================
    FAIQ ABDILLAH — PERSONAL PORTFOLIO
-   Full Data & Image Preloader
+   FULL DATA & IMAGE PRELOADER WITH REAL PROGRESS
 ========================================================= */
 
 const $ = (selector) => document.querySelector(selector);
@@ -87,6 +87,7 @@ let activeIndex = 0;
 let currentKey = "about";
 
 let articleCache = {};
+
 let preloadProgress = {
   total: 0,
   completed: 0
@@ -127,19 +128,27 @@ function normalize(value) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function updateProgress() {
+
+/* =========================================================
+   REAL LOADING PROGRESS
+========================================================= */
+
+function updateProgress(percent) {
   if (!loaderLine) return;
 
-  const percentage = preloadProgress.total
-    ? preloadProgress.completed / preloadProgress.total
-    : 0;
+  const value = Math.max(0, Math.min(100, percent));
 
   loaderLine.style.animation = "none";
-  loaderLine.style.transform = "scaleX(1)";
-  loaderLine.style.width = "100px";
   loaderLine.style.transformOrigin = "left";
-  loaderLine.style.background =
-    `linear-gradient(to right, #f1cb57 ${percentage * 100}%, rgba(37,43,73,.12) ${percentage * 100}%)`;
+  loaderLine.style.transform = `scaleX(${value / 100})`;
+  loaderLine.style.background = "#f1cb57";
+
+  const label = loader?.querySelector("small");
+
+  if (label) {
+    label.textContent =
+      `LOADING PORTFOLIO · ${Math.floor(value)}%`;
+  }
 }
 
 
@@ -723,7 +732,6 @@ function collectImageUrls() {
 function preloadImage(url) {
   return new Promise(resolve => {
     const img = new Image();
-
     let finished = false;
 
     function complete(success) {
@@ -732,7 +740,13 @@ function preloadImage(url) {
       finished = true;
 
       preloadProgress.completed++;
-      updateProgress();
+
+      const imageProgress = preloadProgress.total
+        ? preloadProgress.completed / preloadProgress.total
+        : 1;
+
+      // Image loading occupies 20%–95% of total progress
+      updateProgress(20 + imageProgress * 75);
 
       resolve({
         url,
@@ -744,7 +758,7 @@ function preloadImage(url) {
       try {
         if (img.decode) await img.decode();
       } catch {
-        // Image may still be usable even if decode rejects
+        // Image may still be usable
       }
 
       complete(true);
@@ -756,11 +770,7 @@ function preloadImage(url) {
 
     // Handle images already available in browser cache
     if (img.complete) {
-      if (img.naturalWidth > 0) {
-        complete(true);
-      } else {
-        complete(false);
-      }
+      complete(img.naturalWidth > 0);
     }
   });
 }
@@ -772,9 +782,12 @@ async function preloadAllImages() {
   preloadProgress.total = urls.length;
   preloadProgress.completed = 0;
 
-  updateProgress();
+  updateProgress(20);
 
-  if (!urls.length) return [];
+  if (!urls.length) {
+    updateProgress(95);
+    return [];
+  }
 
   const results = await Promise.all(
     urls.map(url => preloadImage(url))
@@ -1071,8 +1084,7 @@ function showLoadingError(error) {
   const heading = loader.querySelector("h1");
 
   if (heading) {
-    heading.innerHTML =
-      'Almost <em>there.</em>';
+    heading.innerHTML = 'Almost <em>there.</em>';
   }
 
   // Avoid leaving the visitor trapped on the loader
@@ -1081,28 +1093,40 @@ function showLoadingError(error) {
 
 
 /* =========================================================
-   INITIALIZE
+   INITIALIZE PORTFOLIO
 ========================================================= */
 
 async function initializePortfolio() {
   try {
-    // 1. Fetch every database and its page content
+    // Start at 0%
+    updateProgress(0);
+
+    // 1. Fetch all Notion databases and page content
     await loadPortfolio();
 
-    // 2. Wait for all portfolio images
+    // Database loading completed: 20%
+    updateProgress(20);
+
+    // 2. Preload all portfolio images
     await preloadAllImages();
 
-    // 3. Wait for web fonts
+    // Image loading completed: 95%
+
+    // 3. Wait for fonts
     await waitForFonts();
 
-    // 4. Allow the browser to finish the final render
+    updateProgress(98);
+
+    // 4. Allow browser to finish rendering
     await new Promise(resolve => {
       requestAnimationFrame(() => {
         requestAnimationFrame(resolve);
       });
     });
 
-    // 5. Reveal the complete portfolio
+    // 5. Reach 100% and reveal portfolio
+    updateProgress(100);
+
     finishLoading();
 
     console.log("Portfolio is ready.");
@@ -1112,4 +1136,6 @@ async function initializePortfolio() {
   }
 }
 
+
+// Start portfolio
 initializePortfolio();
