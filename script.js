@@ -1,18 +1,26 @@
 
-const scene = document.getElementById("orbitScene");
-const exploreButton = document.getElementById("exploreButton");
-const overlay = document.getElementById("detailOverlay");
-const closeButton = document.getElementById("closeButton");
-const title = document.getElementById("detailTitle");
-const eyebrow = document.getElementById("detailEyebrow");
-const body = document.getElementById("detailBody");
-const nav = document.getElementById("detailNav");
+/* =========================================================
+   FAIQ ABDILLAH — PERSONAL PORTFOLIO
+   Full Data & Image Preloader
+========================================================= */
 
-const profileAbout = document.getElementById("profileAbout");
-const profileKeywords = document.getElementById("profileKeywords");
-const profileAvatar = document.getElementById("profileAvatar");
-const profileContact = document.getElementById("profileContact");
-const loader = document.getElementById("loader");
+const $ = (selector) => document.querySelector(selector);
+
+const scene = $("#orbitScene");
+const exploreButton = $("#exploreButton");
+const overlay = $("#detailOverlay");
+const closeButton = $("#closeButton");
+const title = $("#detailTitle");
+const eyebrow = $("#detailEyebrow");
+const articleBody = $("#detailBody");
+const nav = $("#detailNav");
+
+const profileAbout = $("#profileAbout");
+const profileKeywords = $("#profileKeywords");
+const profileAvatar = $("#profileAvatar");
+const profileContact = $("#profileContact");
+const loader = $("#loader");
+const loaderLine = $(".loader-line");
 
 const API_URL = "/api/portfolio";
 
@@ -78,8 +86,16 @@ let activeEntries = [];
 let activeIndex = 0;
 let currentKey = "about";
 
-const sleep = ms =>
-  new Promise(resolve => setTimeout(resolve, ms));
+let articleCache = {};
+let preloadProgress = {
+  total: 0,
+  completed: 0
+};
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -93,8 +109,10 @@ function esc(value) {
 
 function safeUrl(value) {
   if (!value) return "";
+
   try {
     const url = new URL(value);
+
     return ["http:", "https:", "mailto:", "tel:"].includes(url.protocol)
       ? url.href
       : "";
@@ -102,6 +120,32 @@ function safeUrl(value) {
     return "";
   }
 }
+
+function normalize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function updateProgress() {
+  if (!loaderLine) return;
+
+  const percentage = preloadProgress.total
+    ? preloadProgress.completed / preloadProgress.total
+    : 0;
+
+  loaderLine.style.animation = "none";
+  loaderLine.style.transform = "scaleX(1)";
+  loaderLine.style.width = "100px";
+  loaderLine.style.transformOrigin = "left";
+  loaderLine.style.background =
+    `linear-gradient(to right, #f1cb57 ${percentage * 100}%, rgba(37,43,73,.12) ${percentage * 100}%)`;
+}
+
+
+/* =========================================================
+   NOTION RICH TEXT
+========================================================= */
 
 function rich(items = []) {
   return items.map(item => {
@@ -117,30 +161,41 @@ function rich(items = []) {
     if (a.underline) value = `<u>${value}</u>`;
     if (a.strikethrough) value = `<s>${value}</s>`;
 
-    const url = safeUrl(item.href || item.text?.link?.url);
+    const url = safeUrl(
+      item.href || item.text?.link?.url
+    );
 
     if (url) {
       const external = /^https?:/i.test(url);
+
       value = `<a href="${esc(url)}"
-        ${external ? 'target="_blank" rel="noopener noreferrer"' : ""}>${value}</a>`;
+        ${external ? 'target="_blank" rel="noopener noreferrer"' : ""}>
+        ${value}
+      </a>`;
     }
 
     return value;
   }).join("");
 }
 
-/* NOTION BLOCKS */
+
+/* =========================================================
+   NOTION BLOCK RENDERER
+========================================================= */
 
 function renderBlock(block) {
   const data = block[block.type] || {};
   const content = rich(data.rich_text || []);
+
   const children = block.children?.length
     ? renderBlocks(block.children)
     : "";
 
   switch (block.type) {
     case "paragraph":
-      return content ? `<p>${content}</p>${children}` : children;
+      return content
+        ? `<p>${content}</p>${children}`
+        : children;
 
     case "heading_1":
       return `<h2>${content}</h2>${children}`;
@@ -166,7 +221,10 @@ function renderBlock(block) {
       return `<p>${data.checked ? "☑" : "☐"} ${content}</p>`;
 
     case "toggle":
-      return `<details><summary>${content}</summary>${children}</details>`;
+      return `<details>
+        <summary>${content}</summary>
+        ${children}
+      </details>`;
 
     case "child_page":
       return `<h3>${esc(data.title || "Untitled page")}</h3>`;
@@ -174,8 +232,12 @@ function renderBlock(block) {
     case "bookmark":
     case "embed": {
       const url = safeUrl(data.url);
+
       return url
-        ? `<p><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(data.url)}</a></p>`
+        ? `<p>
+            <a href="${esc(url)}" target="_blank"
+              rel="noopener noreferrer">${esc(data.url)}</a>
+          </p>`
         : "";
     }
 
@@ -183,12 +245,22 @@ function renderBlock(block) {
     case "file":
     case "pdf": {
       const file = data.file?.url || data.external?.url;
-      return file
-        ? `<figure class="article-inline-image">
-            <img src="${esc(file)}" alt="${esc(data.caption?.[0]?.plain_text || "Portfolio image")}" loading="lazy">
-            <figcaption>${rich(data.caption || [])}</figcaption>
-          </figure>`
-        : "";
+
+      if (!file) return "";
+
+      const caption = rich(data.caption || []);
+
+      return `
+        <figure class="article-inline-image">
+          <img
+            src="${esc(file)}"
+            alt="${esc(data.caption?.[0]?.plain_text || "Portfolio image")}"
+            loading="eager"
+            decoding="async"
+          >
+          <figcaption>${caption}</figcaption>
+        </figure>
+      `;
     }
 
     default:
@@ -196,17 +268,19 @@ function renderBlock(block) {
   }
 }
 
+
 function renderBlocks(blocks = []) {
   let output = "";
   let listType = null;
   let items = [];
 
   function flush() {
-    if (listType) {
-      output += `<${listType}>${items.join("")}</${listType}>`;
-      listType = null;
-      items = [];
-    }
+    if (!listType) return;
+
+    output += `<${listType}>${items.join("")}</${listType}>`;
+
+    listType = null;
+    items = [];
   }
 
   for (const block of blocks) {
@@ -214,7 +288,8 @@ function renderBlocks(blocks = []) {
       block.type === "bulleted_list_item" ||
       block.type === "numbered_list_item"
     ) {
-      const type = block.type === "bulleted_list_item" ? "ul" : "ol";
+      const type =
+        block.type === "bulleted_list_item" ? "ul" : "ol";
 
       if (listType !== type) {
         flush();
@@ -222,6 +297,7 @@ function renderBlocks(blocks = []) {
       }
 
       items.push(renderBlock(block));
+
     } else {
       flush();
       output += renderBlock(block);
@@ -229,10 +305,14 @@ function renderBlocks(blocks = []) {
   }
 
   flush();
+
   return output;
 }
 
-/* NOTION PROPERTIES */
+
+/* =========================================================
+   NOTION PROPERTIES
+========================================================= */
 
 function propText(property) {
   if (!property) return "";
@@ -271,103 +351,140 @@ function propText(property) {
   }
 }
 
+
 function pageTitle(page) {
   for (const property of Object.values(page.properties || {})) {
-    if (property.type === "title") return propText(property);
+    if (property.type === "title") {
+      return propText(property);
+    }
   }
+
   return "Untitled";
 }
 
-function normalize(value) {
-  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
 
 function propertyByMatch(page, terms) {
   for (const [key, value] of Object.entries(page?.properties || {})) {
     const name = normalize(key);
+
     if (terms.some(term => name.includes(normalize(term)))) {
       return value;
     }
   }
+
   return null;
 }
+
 
 function propertyValue(page, terms) {
   return propText(propertyByMatch(page, terms));
 }
 
+
 function fileUrls(property) {
-  if (!property) return [];
+  if (!property || property.type !== "files") return [];
 
-  if (property.type === "files") {
-    return (property.files || []).map(file =>
-      file.file?.url || file.external?.url || ""
-    ).filter(Boolean);
-  }
-
-  return [];
+  return (property.files || [])
+    .map(file => file.file?.url || file.external?.url || "")
+    .filter(Boolean);
 }
+
 
 function imageProperty(page, terms) {
   return fileUrls(propertyByMatch(page, terms));
 }
 
+
 function imageMarkup(url, alt, className = "article-inline-image") {
   if (!url) return "";
 
-  return `<figure class="${className}">
-    <img src="${esc(url)}" alt="${esc(alt)}" loading="lazy">
-    <figcaption>${esc(alt)}</figcaption>
-  </figure>`;
+  return `
+    <figure class="${className}">
+      <img
+        src="${esc(url)}"
+        alt="${esc(alt)}"
+        loading="eager"
+        decoding="async"
+      >
+      <figcaption>${esc(alt)}</figcaption>
+    </figure>
+  `;
 }
+
 
 function propertyMarkup(key, property) {
   const value = propText(property);
+
   if (!value) return "";
 
   if (property.type === "url") {
     const url = safeUrl(value);
+
     if (url) {
-      return `<p><strong>${esc(key)}:</strong>
-        <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(value)}</a></p>`;
+      return `
+        <p><strong>${esc(key)}:</strong>
+          <a href="${esc(url)}" target="_blank"
+            rel="noopener noreferrer">${esc(value)}</a>
+        </p>
+      `;
     }
   }
 
   if (property.type === "email") {
-    return `<p><strong>${esc(key)}:</strong>
-      <a href="mailto:${encodeURIComponent(value)}">${esc(value)}</a></p>`;
+    return `
+      <p><strong>${esc(key)}:</strong>
+        <a href="mailto:${encodeURIComponent(value)}">${esc(value)}</a>
+      </p>
+    `;
   }
 
   if (property.type === "phone_number") {
-    return `<p><strong>${esc(key)}:</strong>
-      <a href="tel:${esc(value)}">${esc(value)}</a></p>`;
+    return `
+      <p><strong>${esc(key)}:</strong>
+        <a href="tel:${esc(value)}">${esc(value)}</a>
+      </p>
+    `;
   }
 
   return `<p><strong>${esc(key)}:</strong> ${esc(value)}</p>`;
 }
 
-/* PROFILE */
+
+/* =========================================================
+   PROFILE DATA
+========================================================= */
 
 function applyProfile() {
   const rows = portfolioData?.databases?.profile?.results || [];
+
   if (!rows.length) return;
 
   const page = rows[0];
 
   const about = propertyValue(page, [
-    "aboutme", "about", "bio", "summary", "description"
+    "aboutme",
+    "about",
+    "bio",
+    "summary",
+    "description"
   ]);
 
-  if (about) profileAbout.textContent = about;
+  if (about) {
+    profileAbout.textContent = about;
+  }
 
   const keywords = propertyByMatch(page, [
-    "keyword", "keywords", "focus", "tags"
+    "keyword",
+    "keywords",
+    "focus",
+    "tags"
   ]);
 
   let keywordList = [];
 
   if (keywords?.type === "multi_select") {
     keywordList = keywords.multi_select.map(item => item.name);
+
   } else if (keywords?.type === "rich_text") {
     keywordList = keywords.rich_text
       .map(item => item.plain_text)
@@ -378,51 +495,75 @@ function applyProfile() {
   }
 
   if (keywordList.length) {
-    profileKeywords.innerHTML = keywordList.slice(0, 5)
+    profileKeywords.innerHTML = keywordList
+      .slice(0, 5)
       .map(item => `<span>${esc(item)}</span>`)
       .join("");
   }
 
   const frontPhoto = imageProperty(page, [
-    "frontphoto", "landingphoto", "profilephoto", "avatar"
+    "frontphoto",
+    "landingphoto",
+    "profilephoto",
+    "avatar"
   ])[0];
 
   if (frontPhoto) {
-    profileAvatar.innerHTML =
-      `<img src="${esc(frontPhoto)}" alt="Faiq Abdillah"><i></i>`;
+    profileAvatar.innerHTML = `
+      <img src="${esc(frontPhoto)}"
+        alt="Faiq Abdillah"
+        loading="eager"
+        decoding="async">
+      <i></i>
+    `;
   }
 
   const logo = imageProperty(page, [
-    "portfoliologo", "brandlogo", "logo"
+    "portfoliologo",
+    "brandlogo",
+    "logo"
   ])[0];
 
   if (logo) {
-    document.getElementById("brandLogo").innerHTML =
-      `<img src="${esc(logo)}" alt="Portfolio logo">`;
+    $("#brandLogo").innerHTML = `
+      <img src="${esc(logo)}" alt="Portfolio logo">
+    `;
   }
 }
 
-/* ENTRY CONTENT */
+
+/* =========================================================
+   ARTICLE CONTENT
+========================================================= */
 
 function entryContent(page, source) {
   let output = "";
 
-  // Logo aplikasi khusus proyek
+  // Project application logo
   if (source === "projects") {
     const logo = imageProperty(page, [
-      "applogo", "projectlogo", "logo"
+      "applogo",
+      "projectlogo",
+      "logo"
     ])[0];
 
     if (logo) {
-      output += `<img class="article-appmark"
-        src="${esc(logo)}" alt="Application logo">`;
+      output += `
+        <img class="article-appmark"
+          src="${esc(logo)}"
+          alt="Application logo"
+          loading="eager"
+          decoding="async">
+      `;
     }
   }
 
-  // Foto khusus About Me, terpisah dari foto landing
+  // Separate About Me portrait
   if (source === "profile") {
     const aboutPhoto = imageProperty(page, [
-      "aboutphoto", "aboutimage", "biophoto"
+      "aboutphoto",
+      "aboutimage",
+      "biophoto"
     ])[0];
 
     if (aboutPhoto) {
@@ -434,28 +575,40 @@ function entryContent(page, source) {
     }
   }
 
-  // Galeri foto proyek
+  // Project gallery
   if (source === "projects") {
     const gallery = imageProperty(page, [
-      "projectgallery", "gallery", "screenshots", "projectimages"
+      "projectgallery",
+      "gallery",
+      "screenshots",
+      "projectimages"
     ]);
 
     if (gallery.length) {
-      output += `<div class="article-gallery">
-        ${gallery.map((url, index) => `
-          <figure>
-            <img src="${esc(url)}"
-              alt="Project image ${index + 1}"
-              loading="lazy">
-            <figcaption>FIG. ${String(index + 1).padStart(2, "0")}</figcaption>
-          </figure>
-        `).join("")}
-      </div>`;
+      output += `
+        <div class="article-gallery">
+          ${gallery.map((url, index) => `
+            <figure>
+              <img
+                src="${esc(url)}"
+                alt="Project image ${index + 1}"
+                loading="eager"
+                decoding="async"
+              >
+              <figcaption>
+                FIG. ${String(index + 1).padStart(2, "0")}
+              </figcaption>
+            </figure>
+          `).join("")}
+        </div>
+      `;
     }
   }
 
+  // Notion page body
   output += renderBlocks(page.content || []);
 
+  // Database properties
   const properties = Object.entries(page.properties || {})
     .filter(([key, value]) =>
       value.type !== "title" &&
@@ -471,13 +624,18 @@ function entryContent(page, source) {
   return output || `
     <p class="empty-state">
       No written detail is available for this entry yet.
-    </p>`;
+    </p>
+  `;
 }
 
-/* GET SECTION ENTRIES */
+
+/* =========================================================
+   SECTION DATA
+========================================================= */
 
 function getEntries(key) {
   const section = sections[key];
+
   if (!section || !portfolioData) return [];
 
   const entries = [];
@@ -499,7 +657,145 @@ function getEntries(key) {
   return entries;
 }
 
-/* SIDEBAR */
+
+/* =========================================================
+   PRE-BUILD ALL ARTICLE CONTENT
+========================================================= */
+
+function prepareAllArticles() {
+  articleCache = {};
+
+  Object.keys(sections).forEach(key => {
+    const entries = getEntries(key);
+
+    articleCache[key] = entries.map((item, index) => ({
+      ...item,
+      html: `
+        <p class="article-kicker">
+          ${esc(item.source)} · ${String(index + 1).padStart(2, "0")}
+        </p>
+        <h3>${esc(item.title)}</h3>
+        ${entryContent(item.page, item.source)}
+      `
+    }));
+  });
+}
+
+
+/* =========================================================
+   IMAGE PRELOADER
+========================================================= */
+
+function collectImageUrls() {
+  const urls = new Set();
+
+  // Landing profile
+  document.querySelectorAll("img").forEach(img => {
+    if (img.src) urls.add(img.src);
+  });
+
+  // Every article, including content not yet opened
+  Object.values(articleCache).forEach(entries => {
+    entries.forEach(entry => {
+      const html = entry.html || "";
+
+      const template = document.createElement("template");
+      template.innerHTML = html;
+
+      template.content.querySelectorAll("img").forEach(img => {
+        const src = img.getAttribute("src");
+
+        if (src) {
+          try {
+            urls.add(new URL(src, location.href).href);
+          } catch {
+            // Ignore invalid image URLs
+          }
+        }
+      });
+    });
+  });
+
+  return [...urls];
+}
+
+
+function preloadImage(url) {
+  return new Promise(resolve => {
+    const img = new Image();
+
+    let finished = false;
+
+    function complete(success) {
+      if (finished) return;
+
+      finished = true;
+
+      preloadProgress.completed++;
+      updateProgress();
+
+      resolve({
+        url,
+        success
+      });
+    }
+
+    img.onload = async () => {
+      try {
+        if (img.decode) await img.decode();
+      } catch {
+        // Image may still be usable even if decode rejects
+      }
+
+      complete(true);
+    };
+
+    img.onerror = () => complete(false);
+
+    img.src = url;
+
+    // Handle images already available in browser cache
+    if (img.complete) {
+      if (img.naturalWidth > 0) {
+        complete(true);
+      } else {
+        complete(false);
+      }
+    }
+  });
+}
+
+
+async function preloadAllImages() {
+  const urls = collectImageUrls();
+
+  preloadProgress.total = urls.length;
+  preloadProgress.completed = 0;
+
+  updateProgress();
+
+  if (!urls.length) return [];
+
+  const results = await Promise.all(
+    urls.map(url => preloadImage(url))
+  );
+
+  const failed = results.filter(result => !result.success);
+
+  if (failed.length) {
+    console.warn(
+      `${failed.length} image(s) could not be loaded.`,
+      failed.map(item => item.url)
+    );
+  }
+
+  return results;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
 
 function renderSidebar() {
   nav.innerHTML = "";
@@ -508,7 +804,8 @@ function renderSidebar() {
     const button = document.createElement("button");
 
     button.className =
-      "detail-nav-item" + (index === activeIndex ? " is-active" : "");
+      "detail-nav-item" +
+      (index === activeIndex ? " is-active" : "");
 
     button.innerHTML = `
       <span class="detail-nav-number">
@@ -526,36 +823,40 @@ function renderSidebar() {
   });
 
   if (!activeEntries.length) {
-    nav.innerHTML =
-      '<span class="detail-nav-item is-active">Overview</span>';
+    nav.innerHTML = `
+      <span class="detail-nav-item is-active">
+        Overview
+      </span>
+    `;
   }
 }
 
-/* RENDER ARTICLE */
+
+/* =========================================================
+   RENDER ARTICLE
+========================================================= */
 
 function renderActive() {
-  const item = activeEntries[activeIndex];
+  const entries = articleCache[currentKey] || [];
+  const item = entries[activeIndex];
 
   if (!item) {
-    body.innerHTML = `
+    articleBody.innerHTML = `
       <p class="article-kicker">PORTFOLIO / 2026</p>
       <p>${esc(sections[currentKey].fallback)}</p>
     `;
   } else {
-    body.innerHTML = `
-      <p class="article-kicker">
-        ${esc(item.source)} · ${String(activeIndex + 1).padStart(2, "0")}
-      </p>
-      <h3>${esc(item.title)}</h3>
-      ${entryContent(item.page, item.source)}
-    `;
+    articleBody.innerHTML = item.html;
   }
 
-  body.scrollTop = 0;
+  articleBody.scrollTop = 0;
 
   nav.querySelectorAll(".detail-nav-item")
     .forEach((button, index) => {
-      button.classList.toggle("is-active", index === activeIndex);
+      button.classList.toggle(
+        "is-active",
+        index === activeIndex
+      );
     });
 
   const activeButton = nav.querySelector(".is-active");
@@ -568,10 +869,14 @@ function renderActive() {
   }
 }
 
-/* OPEN POPUP */
+
+/* =========================================================
+   OPEN / CLOSE POPUP
+========================================================= */
 
 function openSection(key) {
   const section = sections[key];
+
   if (!section) return;
 
   currentKey = key;
@@ -592,21 +897,24 @@ function openSection(key) {
   closeButton.focus();
 }
 
-/* CLOSE POPUP */
 
 function closeSection() {
   overlay.classList.remove("is-visible");
   overlay.setAttribute("aria-hidden", "true");
 }
 
-/* PROFILE CONTACT */
 
+/* =========================================================
+   INTERACTIONS
+========================================================= */
+
+// Contact Me
 profileContact.addEventListener("click", () => {
   openSection("contact");
 });
 
-/* EXPLORE / HIDE NAVIGATION */
 
+// Spread / Hide navigation
 exploreButton.addEventListener("click", () => {
   const isOpen = scene.classList.toggle("is-open");
 
@@ -617,35 +925,47 @@ exploreButton.addEventListener("click", () => {
     isOpen ? "×" : "↗";
 });
 
-/* NAVIGATION CARDS */
 
+// Eight navigation cards
 document.querySelectorAll(".nav-card").forEach(card => {
   card.addEventListener("click", () => {
     openSection(card.dataset.section);
   });
 });
 
+
+// Close popup
 closeButton.addEventListener("click", closeSection);
 
 overlay.addEventListener("click", event => {
-  if (event.target === overlay) closeSection();
+  if (event.target === overlay) {
+    closeSection();
+  }
 });
 
-/* SIDEBAR ARROW CONTROLS */
 
-document.getElementById("sidebarUp").addEventListener("click", () => {
-  nav.scrollBy({ top: -130, behavior: "smooth" });
+// Sidebar controls
+$("#sidebarUp").addEventListener("click", () => {
+  nav.scrollBy({
+    top: -130,
+    behavior: "smooth"
+  });
 });
 
-document.getElementById("sidebarDown").addEventListener("click", () => {
-  nav.scrollBy({ top: 130, behavior: "smooth" });
+$("#sidebarDown").addEventListener("click", () => {
+  nav.scrollBy({
+    top: 130,
+    behavior: "smooth"
+  });
 });
 
-/* KEYBOARD */
 
+// Keyboard controls
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape" &&
-      overlay.classList.contains("is-visible")) {
+  if (
+    event.key === "Escape" &&
+    overlay.classList.contains("is-visible")
+  ) {
     closeSection();
   }
 
@@ -653,66 +973,143 @@ document.addEventListener("keydown", event => {
 
   if (event.key === "ArrowDown" && event.altKey) {
     event.preventDefault();
-    activeIndex = Math.min(activeIndex + 1, activeEntries.length - 1);
+
+    activeIndex = Math.min(
+      activeIndex + 1,
+      activeEntries.length - 1
+    );
+
     renderActive();
   }
 
   if (event.key === "ArrowUp" && event.altKey) {
     event.preventDefault();
+
     activeIndex = Math.max(activeIndex - 1, 0);
+
     renderActive();
   }
 });
 
-/* LOAD NOTION */
+
+/* =========================================================
+   FETCH NOTION DATABASES
+========================================================= */
 
 async function loadPortfolio() {
+  const response = await fetch(API_URL, {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Portfolio API error: ${response.status}`
+    );
+  }
+
+  const data = await response.json();
+
+  if (!data.success || !data.databases) {
+    throw new Error(
+      data.error || "Invalid portfolio response."
+    );
+  }
+
+  portfolioData = data;
+
+  applyProfile();
+
+  prepareAllArticles();
+
+  console.log("Portfolio data prepared.");
+
+  return data;
+}
+
+
+/* =========================================================
+   WAIT FOR FONTS
+========================================================= */
+
+async function waitForFonts() {
+  if (!document.fonts?.ready) return;
+
   try {
-    const response = await fetch(API_URL);
-
-    if (!response.ok) {
-      throw new Error("Portfolio API unavailable");
-    }
-
-    const data = await response.json();
-
-    if (!data.success || !data.databases) {
-      throw new Error("Invalid portfolio response");
-    }
-
-    portfolioData = data;
-    applyProfile();
-
-    if (overlay.classList.contains("is-visible")) {
-      openSection(currentKey);
-    }
-
-    console.log("Portfolio data loaded");
-
+    await document.fonts.ready;
   } catch (error) {
-    console.error("Portfolio loading error:", error);
+    console.warn("Font loading warning:", error);
   }
 }
 
-/* INITIAL LOADING SCREEN */
 
-async function initializePortfolio() {
-  const start = Date.now();
+/* =========================================================
+   LOADING SCREEN
+========================================================= */
 
-  await Promise.all([
-    loadPortfolio(),
-    sleep(5000)
-  ]);
-
-  const remaining = Math.max(0, 5000 - (Date.now() - start));
-
-  if (remaining) await sleep(remaining);
-
+function finishLoading() {
   loader.classList.add("is-gone");
+
+  document.body.classList.add("portfolio-ready");
 
   setTimeout(() => {
     loader?.remove();
   }, 900);
+}
+
+
+function showLoadingError(error) {
+  console.error("Portfolio loading error:", error);
+
+  const message = loader.querySelector("small");
+
+  if (message) {
+    message.textContent =
+      "SOME CONTENT COULD NOT BE LOADED · PLEASE REFRESH";
+  }
+
+  const heading = loader.querySelector("h1");
+
+  if (heading) {
+    heading.innerHTML =
+      'Almost <em>there.</em>';
+  }
+
+  // Avoid leaving the visitor trapped on the loader
+  finishLoading();
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+async function initializePortfolio() {
+  try {
+    // 1. Fetch every database and its page content
+    await loadPortfolio();
+
+    // 2. Wait for all portfolio images
+    await preloadAllImages();
+
+    // 3. Wait for web fonts
+    await waitForFonts();
+
+    // 4. Allow the browser to finish the final render
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+
+    // 5. Reveal the complete portfolio
+    finishLoading();
+
+    console.log("Portfolio is ready.");
+
+  } catch (error) {
+    showLoadingError(error);
+  }
 }
 
 initializePortfolio();
