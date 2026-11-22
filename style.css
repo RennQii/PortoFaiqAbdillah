@@ -18,3 +18,181 @@
 @media(max-width:600px){.topbar{height:62px;padding:0 20px}.topbar-right{font-size:7px;letter-spacing:.1em}.stage{padding:42px 15px 24px}.intro{margin-bottom:18px}.intro-copy{max-width:270px;margin:auto;line-height:1.6}.orbit-scene{height:auto;min-height:0;display:flex;flex-direction:column;padding:10px 0 18px;gap:10px}.orbit-ring,.orbit-lines{display:none}.profile-core{width:min(100%,330px);min-height:0;padding:19px 23px 17px;order:0}.avatar{width:72px;height:72px;margin:17px auto 10px}.profile-core h2{font-size:37px}.core-role{margin-bottom:13px}.core-hint{margin-top:10px}.nav-card{position:relative;inset:auto!important;transform:none!important;width:min(100%,330px);min-height:73px;padding:11px 16px 10px 48px;opacity:1;pointer-events:auto;display:none;transition:opacity .3s,transform .3s;order:1}.orbit-scene.is-open .nav-card{display:block;animation:mobileIn .42s both;animation-delay:var(--delay)}.orbit-scene.is-open .profile-core{transform:none;opacity:1}.orbit-scene.is-open .explore-button{background:#e7e7d7;color:#294638}.nav-card .card-title{font-size:16px;margin:7px 0 2px}.nav-card .card-number{top:14px}.bottom-note{margin-top:7px}.detail-panel{padding:42px 25px 22px}.detail-footer{gap:12px;font-size:7px}.site-footer{padding:16px 20px;font-size:8px}}
 @keyframes mobileIn{from{opacity:0;transform:translateY(12px)!important}to{opacity:1;transform:translateY(0)!important}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+/* =================================
+   NATURAL MOTION — PORTFOLIO
+================================= */
+
+:root {
+  --motion-smooth: cubic-bezier(.22, 1, .36, 1);
+  --motion-soft: cubic-bezier(.2, .7, .25, 1);
+}
+
+/* Ambient background */
+.ambient-one {
+  animation: ambientFloat 16s ease-in-out infinite alternate;
+}
+
+.ambient-two {
+  animation: ambientFloat 20s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes ambientFloat {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-18px, 22px, 0) scale(1.06); }
+}
+
+/* Orbit rings */
+.orbit-ring {
+  transition:
+    border-color 1s var(--motion-smooth),
+    transform 1.2s var(--motion-smooth);
+}
+
+.orbit-scene.is-open .ring-outer {
+  animation: orbitBreathe 8s ease-in-out infinite alternate;
+}
+
+.orbit-scene.is-open .ring-inner {
+  animation: orbitBreathe 10s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes orbitBreathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.025); }
+}
+
+/* Navigation cards */
+.nav-card {
+  transition:
+    opacity .8s var(--motion-smooth),
+    transform .9s var(--motion-smooth),
+    box-shadow .35s var(--motion-smooth),
+    border-color .35s ease;
+  will-change: transform, opacity;
+}
+
+.orbit-scene.is-open .nav-card:hover {
+  transform:
+    translate(var(--tx), var(--ty))
+    scale(1.035)
+    translateY(-2px);
+  box-shadow: 0 16px 36px rgba(45, 61, 44, .12);
+}
+
+/* Profile core */
+.profile-core {
+  transition:
+    transform .9s var(--motion-smooth),
+    opacity .7s ease,
+    box-shadow .7s ease;
+}
+
+.avatar {
+  transition: transform .6s var(--motion-smooth);
+}
+
+.profile-core:hover .avatar {
+  transform: scale(1.045);
+}
+
+/* Explore button */
+.explore-button {
+  transition:
+    background .3s ease,
+    color .3s ease,
+    transform .35s var(--motion-smooth);
+}
+
+.explore-button:active {
+  transform: scale(.98);
+}
+
+/* Detail panel */
+.detail-overlay {
+  transition:
+    opacity .45s ease,
+    visibility .45s ease,
+    backdrop-filter .45s ease;
+}
+
+.detail-panel {
+  transition: transform .6s var(--motion-smooth);
+}
+
+.detail-overlay.is-visible .detail-panel {
+  animation: panelEnter .65s var(--motion-smooth) both;
+}
+
+@keyframes panelEnter {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Content reveal */
+.detail-overlay.is-visible .detail-eyebrow,
+.detail-overlay.is-visible .detail-panel h2,
+.detail-overlay.is-visible .detail-rule,
+.detail-overlay.is-visible .detail-body {
+  animation: contentReveal .65s var(--motion-smooth) both;
+}
+
+.detail-overlay.is-visible .detail-panel h2 {
+  animation-delay: .06s;
+}
+
+.detail-overlay.is-visible .detail-rule {
+  animation-delay: .12s;
+}
+
+.detail-overlay.is-visible .detail-body {
+  animation-delay: .18s;
+}
+
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile interaction */
+@media (max-width: 600px) {
+  .orbit-scene.is-open .nav-card {
+    animation: mobileCardReveal .55s var(--motion-smooth) both;
+    animation-delay: var(--delay, 0ms);
+  }
+
+  @keyframes mobileCardReveal {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
