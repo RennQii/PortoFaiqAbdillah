@@ -1,10 +1,11 @@
 
 /* =========================================================
    FAIQ ABDILLAH — PERSONAL PORTFOLIO
-   PROGRESSIVE LOADING · 8 SECOND MAXIMUM
+   PARALLEL LOADING SYSTEM
+   CRITICAL + BACKGROUND WORKERS
 ========================================================= */
 
-const $ = (selector) => document.querySelector(selector);
+const $ = selector => document.querySelector(selector);
 
 const scene = $("#orbitScene");
 const exploreButton = $("#exploreButton");
@@ -82,13 +83,27 @@ const sections = {
   }
 };
 
-let portfolioData = null;
+
+/* =========================================================
+   GLOBAL STATE
+========================================================= */
+
+let portfolioData = {
+  success: true,
+  databases: {}
+};
+
 let activeEntries = [];
 let activeIndex = 0;
 let currentKey = "about";
 let articleCache = {};
 
 let loaderFinished = false;
+let backgroundReady = false;
+let criticalReady = false;
+
+let criticalTask = null;
+let backgroundTask = null;
 
 
 /* =========================================================
@@ -199,9 +214,7 @@ function renderBlock(block) {
 
   switch (block.type) {
     case "paragraph":
-      return content
-        ? `<p>${content}</p>${children}`
-        : children;
+      return content ? `<p>${content}</p>${children}` : children;
 
     case "heading_1":
       return `<h2>${content}</h2>${children}`;
@@ -240,10 +253,8 @@ function renderBlock(block) {
       const url = safeUrl(data.url);
 
       return url
-        ? `<p>
-            <a href="${esc(url)}" target="_blank"
-              rel="noopener noreferrer">${esc(data.url)}</a>
-          </p>`
+        ? `<p><a href="${esc(url)}" target="_blank"
+            rel="noopener noreferrer">${esc(data.url)}</a></p>`
         : "";
     }
 
@@ -284,7 +295,6 @@ function renderBlocks(blocks = []) {
     if (!listType) return;
 
     output += `<${listType}>${items.join("")}</${listType}>`;
-
     listType = null;
     items = [];
   }
@@ -303,7 +313,6 @@ function renderBlocks(blocks = []) {
       }
 
       items.push(renderBlock(block));
-
     } else {
       flush();
       output += renderBlock(block);
@@ -360,9 +369,7 @@ function propText(property) {
 
 function pageTitle(page) {
   for (const property of Object.values(page.properties || {})) {
-    if (property.type === "title") {
-      return propText(property);
-    }
+    if (property.type === "title") return propText(property);
   }
 
   return "Untitled";
@@ -406,12 +413,10 @@ function imageMarkup(url, alt, className = "article-inline-image") {
 
   return `
     <figure class="${className}">
-      <img
-        src="${esc(url)}"
+      <img src="${esc(url)}"
         alt="${esc(alt)}"
         loading="lazy"
-        decoding="async"
-      >
+        decoding="async">
       <figcaption>${esc(alt)}</figcaption>
     </figure>
   `;
@@ -490,7 +495,6 @@ function applyProfile() {
 
   if (keywords?.type === "multi_select") {
     keywordList = keywords.multi_select.map(item => item.name);
-
   } else if (keywords?.type === "rich_text") {
     keywordList = keywords.rich_text
       .map(item => item.plain_text)
@@ -561,6 +565,31 @@ function entryContent(page, source) {
           decoding="async">
       `;
     }
+
+    const gallery = imageProperty(page, [
+      "projectgallery",
+      "gallery",
+      "screenshots",
+      "projectimages"
+    ]);
+
+    if (gallery.length) {
+      output += `
+        <div class="article-gallery">
+          ${gallery.map((url, index) => `
+            <figure>
+              <img src="${esc(url)}"
+                alt="Project image ${index + 1}"
+                loading="lazy"
+                decoding="async">
+              <figcaption>
+                FIG. ${String(index + 1).padStart(2, "0")}
+              </figcaption>
+            </figure>
+          `).join("")}
+        </div>
+      `;
+    }
   }
 
   if (source === "profile") {
@@ -576,35 +605,6 @@ function entryContent(page, source) {
         "Faiq Abdillah",
         "article-hero"
       );
-    }
-  }
-
-  if (source === "projects") {
-    const gallery = imageProperty(page, [
-      "projectgallery",
-      "gallery",
-      "screenshots",
-      "projectimages"
-    ]);
-
-    if (gallery.length) {
-      output += `
-        <div class="article-gallery">
-          ${gallery.map((url, index) => `
-            <figure>
-              <img
-                src="${esc(url)}"
-                alt="Project image ${index + 1}"
-                loading="lazy"
-                decoding="async"
-              >
-              <figcaption>
-                FIG. ${String(index + 1).padStart(2, "0")}
-              </figcaption>
-            </figure>
-          `).join("")}
-        </div>
-      `;
     }
   }
 
@@ -637,7 +637,7 @@ function entryContent(page, source) {
 function getEntries(key) {
   const section = sections[key];
 
-  if (!section || !portfolioData) return [];
+  if (!section) return [];
 
   const entries = [];
 
@@ -659,8 +659,17 @@ function getEntries(key) {
 }
 
 
+function isSectionReady(key) {
+  if (key === "about") {
+    return criticalReady;
+  }
+
+  return backgroundReady;
+}
+
+
 /* =========================================================
-   PRE-BUILD ALL ARTICLE CONTENT
+   BUILD ARTICLE CACHE
 ========================================================= */
 
 function prepareAllArticles() {
@@ -684,7 +693,7 @@ function prepareAllArticles() {
 
 
 /* =========================================================
-   PRIORITY IMAGE LOADING
+   IMAGE PRELOADER
 ========================================================= */
 
 function preloadImage(url) {
@@ -721,7 +730,7 @@ async function preloadCriticalImages() {
   const list = [...urls];
 
   if (!list.length) {
-    updateProgress(85);
+    updateProgress(90);
     return;
   }
 
@@ -730,10 +739,11 @@ async function preloadCriticalImages() {
   await Promise.all(
     list.map(async url => {
       await preloadImage(url);
+
       completed++;
 
       updateProgress(
-        55 + (completed / list.length) * 30
+        50 + (completed / list.length) * 40
       );
     })
   );
@@ -784,6 +794,23 @@ function renderSidebar() {
 ========================================================= */
 
 function renderActive() {
+  if (!isSectionReady(currentKey)) {
+    articleBody.innerHTML = `
+      <div class="empty-state">
+        <p class="article-kicker">LOADING SECTION</p>
+        <p>Preparing this section...</p>
+      </div>
+    `;
+
+    nav.innerHTML = `
+      <span class="detail-nav-item is-active">
+        Loading...
+      </span>
+    `;
+
+    return;
+  }
+
   const entries = articleCache[currentKey] || [];
   const item = entries[activeIndex];
 
@@ -835,7 +862,10 @@ function openSection(key) {
 
   title.textContent = section.title;
 
-  renderSidebar();
+  if (isSectionReady(key)) {
+    renderSidebar();
+  }
+
   renderActive();
 
   overlay.classList.add("is-visible");
@@ -881,13 +911,11 @@ document.querySelectorAll(".nav-card").forEach(card => {
 closeButton.addEventListener("click", closeSection);
 
 overlay.addEventListener("click", event => {
-  if (event.target === overlay) {
-    closeSection();
-  }
+  if (event.target === overlay) closeSection();
 });
 
 
-/* Remove old on-screen sidebar arrow buttons */
+/* Remove old on-screen sidebar arrows */
 $("#sidebarUp")?.closest(".sidebar-controls")?.remove();
 
 
@@ -903,6 +931,8 @@ document.addEventListener("keydown", event => {
 
   if (!overlay.classList.contains("is-visible")) return;
 
+  if (!isSectionReady(currentKey)) return;
+
   if (event.key === "ArrowDown") {
     event.preventDefault();
 
@@ -917,10 +947,7 @@ document.addEventListener("keydown", event => {
   if (event.key === "ArrowUp") {
     event.preventDefault();
 
-    activeIndex = Math.max(
-      activeIndex - 1,
-      0
-    );
+    activeIndex = Math.max(activeIndex - 1, 0);
 
     renderActive();
   }
@@ -928,18 +955,21 @@ document.addEventListener("keydown", event => {
 
 
 /* =========================================================
-   FETCH NOTION DATABASES
+   API FETCHER
 ========================================================= */
 
-async function loadPortfolio() {
-  const response = await fetch(API_URL, {
-    method: "GET",
-    cache: "no-store"
-  });
+async function fetchGroup(group) {
+  const response = await fetch(
+    `${API_URL}?group=${encodeURIComponent(group)}`,
+    {
+      method: "GET",
+      cache: "no-store"
+    }
+  );
 
   if (!response.ok) {
     throw new Error(
-      `Portfolio API error: ${response.status}`
+      `${group} API error: ${response.status}`
     );
   }
 
@@ -947,18 +977,98 @@ async function loadPortfolio() {
 
   if (!data.success || !data.databases) {
     throw new Error(
-      data.error || "Invalid portfolio response."
+      data.error || `Invalid ${group} response`
     );
   }
 
-  portfolioData = data;
+  return data;
+}
+
+
+/* =========================================================
+   CRITICAL WORKER
+   PROFILE + FRONT IMAGE + SPREAD DATA
+========================================================= */
+
+async function loadCritical() {
+  const data = await fetchGroup("critical");
+
+  Object.assign(
+    portfolioData.databases,
+    data.databases
+  );
+
+  criticalReady = true;
 
   applyProfile();
   prepareAllArticles();
 
-  console.log("Portfolio data prepared.");
+  updateProgress(45);
+
+  // Wait for front photo and brand logo.
+  await preloadCriticalImages();
+
+  await waitForFonts();
+
+  updateProgress(97);
 
   return data;
+}
+
+
+/* =========================================================
+   BACKGROUND WORKERS
+   ALL POPUP DATABASES
+========================================================= */
+
+async function loadBackground() {
+  try {
+    const data = await fetchGroup("background");
+
+    Object.assign(
+      portfolioData.databases,
+      data.databases
+    );
+
+    backgroundReady = true;
+
+    prepareAllArticles();
+
+    console.log(
+      "Background workers completed:",
+      Object.keys(data.databases)
+    );
+
+    // Refresh an open popup when its data arrives.
+    if (overlay.classList.contains("is-visible")) {
+      activeEntries = getEntries(currentKey);
+      activeIndex = Math.min(
+        activeIndex,
+        Math.max(0, activeEntries.length - 1)
+      );
+
+      renderSidebar();
+      renderActive();
+    }
+
+    return data;
+
+  } catch (error) {
+    console.error("Background loading error:", error);
+
+    // Do not block the rest of the portfolio.
+    backgroundReady = true;
+
+    prepareAllArticles();
+
+    if (overlay.classList.contains("is-visible")) {
+      activeEntries = getEntries(currentKey);
+      renderSidebar();
+      renderActive();
+    }
+
+    return null;
+  }
 }
 
 
@@ -984,9 +1094,9 @@ async function waitForFonts() {
 function finishLoading() {
   if (loaderFinished) return;
 
-  loaderFinished = true;
-
   updateProgress(100);
+
+  loaderFinished = true;
 
   loader?.classList.add("is-gone");
   document.body.classList.add("portfolio-ready");
@@ -998,7 +1108,7 @@ function finishLoading() {
 
 
 function showLoadingError(error) {
-  console.error("Portfolio loading error:", error);
+  console.error("Critical loading error:", error);
 
   const message = loader?.querySelector("small");
 
@@ -1018,79 +1128,58 @@ function showLoadingError(error) {
 
 
 /* =========================================================
-   INITIALIZE — MAXIMUM 8 SECONDS
+   INITIALIZE PARALLEL SYSTEM
 ========================================================= */
 
 async function initializePortfolio() {
   updateProgress(5);
 
   /*
-    The Notion request continues until it finishes.
-    The 8-second timer only controls the loading screen,
-    not the data request itself.
+    Both workers start together.
+
+    Critical:
+    Profile, front photo, brand logo.
+
+    Background:
+    All popup databases.
   */
 
-  const portfolioTask = (async () => {
-    try {
-      await loadPortfolio();
+  criticalTask = loadCritical();
 
-      if (loaderFinished) {
-        console.log(
-          "Portfolio data finished loading in the background."
-        );
-        return;
-      }
-
-      updateProgress(55);
-
-      await preloadCriticalImages();
-
-      if (loaderFinished) return;
-
-      await waitForFonts();
-
-      if (loaderFinished) return;
-
-      updateProgress(95);
-
-      await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        });
-      });
-
-      finishLoading();
-
-      console.log("Portfolio is ready.");
-
-    } catch (error) {
-      console.error("Portfolio loading error:", error);
-
-      if (!loaderFinished) {
-        showLoadingError(error);
-      }
-    }
-  })();
+  backgroundTask = loadBackground();
 
   /*
-    Hard limit:
-    If data or priority images take too long,
-    reveal the portfolio after 8 seconds.
+    Only critical data controls the initial screen.
+    Background loading never blocks the homepage.
   */
 
-  await Promise.race([
-    portfolioTask,
-    new Promise(resolve => {
-      setTimeout(resolve, MAX_LOADING_TIME);
-    })
-  ]);
+  const timeoutTask = new Promise(resolve => {
+    setTimeout(() => resolve("timeout"), MAX_LOADING_TIME);
+  });
 
-  if (!loaderFinished) {
-    console.warn(
-      "8-second limit reached. Showing portfolio while remaining resources continue loading."
-    );
+  try {
+    const result = await Promise.race([
+      criticalTask.then(() => "ready"),
+      timeoutTask
+    ]);
 
-    finishLoading();
+    if (result === "ready") {
+      finishLoading();
+
+      console.log(
+        "Critical portfolio assets are ready."
+      );
+
+    } else {
+      console.warn(
+        "8-second limit reached. Revealing the portfolio."
+      );
+
+      finishLoading();
+    }
+
+  } catch (error) {
+    showLoadingError(error);
   }
 }
 
