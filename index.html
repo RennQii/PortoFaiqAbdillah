@@ -1,29 +1,25 @@
 
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#f4f1e8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#dcecff">
   <title>Faiq Abdillah — Personal Portfolio</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
   <div class="ambient ambient-one"></div>
   <div class="ambient ambient-two"></div>
 
   <header class="topbar">
-    <a class="wordmark" href="#" aria-label="Kembali ke beranda">
+    <a class="wordmark" href="#" aria-label="Back to home">
       <span class="wordmark-mark">F.</span>
       <span>PERSONAL PORTFOLIO</span>
     </a>
-
     <div class="topbar-right">
       <span class="availability-dot"></span>
       <span>OPEN TO MEANINGFUL OPPORTUNITIES</span>
@@ -31,89 +27,63 @@
   </header>
 
   <main class="stage">
-    <div class="intro">
-      <p class="eyebrow">A LITTLE MAP OF MY JOURNEY</p>
-      <h1>Ideas into <em>impact.</em></h1>
-      <p class="intro-copy">
-        Explore the experiences, interests, and ambitions shaping my journey.
-      </p>
-    </div>
-
-    <section class="orbit-scene" id="orbitScene" aria-label="Navigasi portofolio interaktif">
-
+    <section class="orbit-scene" id="orbitScene" aria-label="Portfolio navigation">
       <div class="orbit-ring ring-outer"></div>
       <div class="orbit-ring ring-inner"></div>
-      <div class="orbit-lines" aria-hidden="true"></div>
 
-      <button class="nav-card card-about" data-section="about" style="--delay:0ms">
-        <span class="card-number">01</span>
-        <span class="card-icon">✳</span>
+      <button class="nav-card card-about" data-section="about">
+        <span class="card-number">01</span><span class="card-icon">✳</span>
         <span class="card-title">About Me</span>
         <span class="card-subtitle">The person behind the work</span>
         <span class="card-arrow">↗</span>
       </button>
 
-      <button class="nav-card card-education" data-section="education" style="--delay:55ms">
-        <span class="card-number">02</span>
-        <span class="card-icon">⌂</span>
-        <span class="card-title">Education & Research</span>
-        <span class="card-subtitle">Academic journey & research</span>
+      <button class="nav-card card-education" data-section="education">
+        <span class="card-number">02</span><span class="card-icon">⌂</span>
+        <span class="card-title">Education &amp; Research</span>
+        <span class="card-subtitle">Academic journey &amp; research</span>
         <span class="card-arrow">↗</span>
       </button>
 
-      <button class="nav-card card-experience" data-section="experience" style="--delay:110ms">
-        <span class="card-number">03</span>
-        <span class="card-icon">↗</span>
+      <button class="nav-card card-experience" data-section="experience">
+        <span class="card-number">03</span><span class="card-icon">↗</span>
         <span class="card-title">Professional Experience</span>
-        <span class="card-subtitle">Work & practical experience</span>
+        <span class="card-subtitle">Work &amp; practical experience</span>
         <span class="card-arrow">↗</span>
       </button>
 
-      <button class="nav-card card-policy" data-section="policy" style="--delay:165ms">
-        <span class="card-number">04</span>
-        <span class="card-icon">❋</span>
-        <span class="card-title">Policy & Interests</span>
-        <span class="card-subtitle">Environment & governance</span>
+      <button class="nav-card card-policy" data-section="policy">
+        <span class="card-number">04</span><span class="card-icon">❋</span>
+        <span class="card-title">Policy &amp; Interests</span>
+        <span class="card-subtitle">Environment &amp; governance</span>
         <span class="card-arrow">↗</span>
       </button>
 
-      <button class="nav-card card-projects" data-section="projects" style="--delay:220ms">
-        <span class="card-number">05</span>
-        <span class="card-icon">▤</span>
+      <button class="nav-card card-projects" data-section="projects">
+        <span class="card-number">05</span><span class="card-icon">▤</span>
         <span class="card-title">Selected Projects</span>
         <span class="card-subtitle">Ideas put into practice</span>
         <span class="card-arrow">↗</span>
       </button>
 
-      <button class="nav-card card-impact" data-section="impact" style="--delay:275ms">
-        <span class="card-number">06</span>
-        <span class="card-icon">✺</span>
-        <span class="card-title">Leadership & Impact</span>
+      <button class="nav-card card-impact" data-section="impact">
+        <span class="card-number">06</span><span class="card-icon">✺</span>
+        <span class="card-title">Leadership &amp; Impact</span>
         <span class="card-subtitle">People, initiatives, outcomes</span>
         <span class="card-arrow">↗</span>
       </button>
 
-      <button class="nav-card card-achievements" data-section="achievements" style="--delay:330ms">
-        <span class="card-number">07</span>
-        <span class="card-icon">◇</span>
-        <span class="card-title">Achievements & Certifications</span>
-        <span class="card-subtitle">Awards & recognition</span>
+      <button class="nav-card card-achievements" data-section="achievements">
+        <span class="card-number">07</span><span class="card-icon">◇</span>
+        <span class="card-title">Achievements &amp; Certifications</span>
+        <span class="card-subtitle">Awards &amp; recognition</span>
         <span class="card-arrow">↗</span>
       </button>
 
-      <button class="nav-card card-skills" data-section="skills" style="--delay:385ms">
-        <span class="card-number">08</span>
-        <span class="card-icon">✧</span>
-        <span class="card-title">Skills & Expertise</span>
-        <span class="card-subtitle">Capabilities & proficiency</span>
-        <span class="card-arrow">↗</span>
-      </button>
-
-      <button class="nav-card card-contact" data-section="contact" style="--delay:440ms">
-        <span class="card-number">09</span>
-        <span class="card-icon">↝</span>
-        <span class="card-title">Contact Me</span>
-        <span class="card-subtitle">Let's connect</span>
+      <button class="nav-card card-skills" data-section="skills">
+        <span class="card-number">08</span><span class="card-icon">✧</span>
+        <span class="card-title">Skills &amp; Expertise</span>
+        <span class="card-subtitle">Capabilities &amp; proficiency</span>
         <span class="card-arrow">↗</span>
       </button>
 
@@ -123,64 +93,78 @@
           <span class="core-status">● BASED IN INDONESIA</span>
         </div>
 
-        <div class="avatar" aria-label="Placeholder foto profil">
-          <span>FA</span>
-          <i></i>
+        <div class="profile-photo-wrap">
+          <div class="avatar" id="profileAvatar">
+            <span>FA</span><i></i>
+          </div>
         </div>
 
-        <p class="core-kicker">HELLO, I'M</p>
-
-        <h2>Faiq<br><em>Abdillah.</em></h2>
-
-        <p class="core-role">
-          Aspiring policy leader<br>
-          Environmental governance · Strategic management
-        </p>
+        <div class="profile-copy">
+          <p class="core-kicker">HELLO, I'M</p>
+          <h1>Faiq<br><em>Abdillah.</em></h1>
+          <p class="core-role" id="profileAbout">
+            Aspiring policy leader<br>
+            Environmental governance · Strategic management
+          </p>
+          <div class="profile-keywords" id="profileKeywords" aria-label="Profile keywords">
+            <span>Policy</span>
+            <span>Governance</span>
+            <span>Strategy</span>
+            <span>Environment</span>
+            <span>Leadership</span>
+          </div>
+          <a class="profile-contact" id="profileContact" href="mailto:">
+            Contact Me <span>↗</span>
+          </a>
+        </div>
 
         <button class="explore-button" id="exploreButton">
-          <span>Explore portfolio</span>
-          <b>↗</b>
+          <span>Explore portfolio</span><b>↗</b>
         </button>
-
         <p class="core-hint">A thoughtful journey, still unfolding.</p>
       </div>
 
-    </section>
+      <button class="nav-card card-contact" data-section="contact">
+        <span class="card-number">09</span><span class="card-icon">↝</span>
+        <span class="card-title">Contact Me</span>
+        <span class="card-subtitle">Let's connect</span>
+        <span class="card-arrow">↗</span>
+      </button>
 
-    <div class="bottom-note">
-      <span>SCROLL TO EXPLORE</span>
-      <span class="note-line"></span>
-      <span>01 — 09</span>
-    </div>
+      <p class="mobile-scroll-hint">SCROLL TO EXPLORE <span>↓</span></p>
+    </section>
   </main>
 
   <div class="detail-overlay" id="detailOverlay" aria-hidden="true">
     <section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <header class="detail-header">
+        <div class="newspaper-masthead">
+          <span>PORTFOLIO</span>
+          <span class="masthead-center">FAIQ ABDILLAH</span>
+          <span>2026</span>
+        </div>
+        <button class="close-button" id="closeButton" aria-label="Close panel">×</button>
+        <p class="detail-eyebrow" id="detailEyebrow">Portfolio | Section 1 : About</p>
+        <h2 id="detailTitle">About Me</h2>
+        <div class="detail-header-rule"></div>
+      </header>
 
-      <button class="close-button" id="closeButton" aria-label="Tutup panel">
-        ×
-      </button>
-
-      <p class="detail-eyebrow" id="detailEyebrow">PORTFOLIO SECTION</p>
-
-      <h2 id="detailTitle">About Me</h2>
-
-      <div class="detail-rule"></div>
-
-      <div id="detailBody" class="detail-body"></div>
-
-      <div class="detail-footer">
-        <span>FAIQ ABDILLAH</span>
-        <span>PERSONAL PORTFOLIO · 2026</span>
+      <div class="detail-content">
+        <aside class="detail-sidebar">
+          <p class="sidebar-label">IN THIS SECTION</p>
+          <nav id="detailNav" aria-label="Section contents"></nav>
+        </aside>
+        <article class="detail-article" id="detailBody" tabindex="0">
+          <p>Select an item to read its story.</p>
+        </article>
       </div>
 
+      <footer class="detail-footer">
+        <span>FAIQ ABDILLAH</span>
+        <span>PERSONAL PORTFOLIO · 2026</span>
+      </footer>
     </section>
   </div>
-
-  <footer class="site-footer">
-    <span>© 2026 Faiq Abdillah</span>
-    <span>Designed as a living portfolio <b>✳</b></span>
-  </footer>
 
   <script src="script.js"></script>
 </body>
