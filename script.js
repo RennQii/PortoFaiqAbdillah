@@ -1,8 +1,7 @@
 
 /* =========================================================
    FAIQ ABDILLAH — PERSONAL PORTFOLIO
-   PARALLEL LOADING SYSTEM
-   CRITICAL + BACKGROUND WORKERS
+   PARALLEL LOADING + CONTACT ME
 ========================================================= */
 
 const $ = selector => document.querySelector(selector);
@@ -444,7 +443,7 @@ function propertyMarkup(key, property) {
   if (property.type === "email") {
     return `
       <p><strong>${esc(key)}:</strong>
-        <a href="mailto:${encodeURIComponent(value)}">${esc(value)}</a>
+        <a href="mailto:${esc(value)}">${esc(value)}</a>
       </p>
     `;
   }
@@ -518,7 +517,7 @@ function applyProfile() {
     "avatar"
   ])[0];
 
-  if (frontPhoto) {
+  if (frontPhoto && profileAvatar) {
     profileAvatar.innerHTML = `
       <img src="${esc(frontPhoto)}"
         alt="Faiq Abdillah"
@@ -534,11 +533,171 @@ function applyProfile() {
     "logo"
   ])[0];
 
-  if (logo) {
-    $("#brandLogo").innerHTML = `
+  const brandLogo = $("#brandLogo");
+
+  if (logo && brandLogo) {
+    brandLogo.innerHTML = `
       <img src="${esc(logo)}" alt="Portfolio logo">
     `;
   }
+}
+
+
+/* =========================================================
+   CONTACT ME — PLATFORM IDENTITIES
+========================================================= */
+
+function contactLogo(label) {
+  const name = normalize(label);
+
+  const logos = [
+    ["linkedin", "in", "linkedin"],
+    ["github", "GH", "github"],
+    ["instagram", "ig", "instagram"],
+    ["whatsapp", "wa", "whatsapp"],
+    ["telegram", "tg", "telegram"],
+    ["email", "✉", "email"],
+    ["mail", "✉", "email"],
+    ["website", "↗", "website"],
+    ["portfolio", "↗", "website"]
+  ];
+
+  const match = logos.find(([key]) => name.includes(key));
+
+  const logo = match
+    ? { text: match[1], className: match[2] }
+    : {
+        text: String(label).trim().slice(0, 2).toUpperCase(),
+        className: "default"
+      };
+
+  return `
+    <span class="contact-logo ${logo.className}">
+      ${esc(logo.text)}
+    </span>
+  `;
+}
+
+
+function contactHref(property, value) {
+  if (!value) return "";
+
+  if (property.type === "email") {
+    return `mailto:${value}`;
+  }
+
+  if (property.type === "phone_number") {
+    const number = value.replace(/\D/g, "");
+    return number ? `https://wa.me/${number}` : "";
+  }
+
+  if (property.type === "url") {
+    return safeUrl(value);
+  }
+
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    return `mailto:${value}`;
+  }
+
+  return safeUrl(value);
+}
+
+
+function contactMarkup(page) {
+  const properties = Object.entries(page.properties || {});
+  const links = [];
+
+  /*
+    FORMAT A:
+    One platform per database row.
+    Example:
+    Page title: LinkedIn
+    Property: URL
+  */
+
+  const platform = pageTitle(page);
+
+  const linkProperty = properties.find(([key, property]) => {
+    const name = normalize(key);
+
+    return (
+      ["url", "email", "phone_number"].includes(property.type) ||
+      (
+        ["rich_text", "title"].includes(property.type) &&
+        ["link", "url", "address", "contact"].some(term =>
+          name.includes(term)
+        )
+      )
+    );
+  });
+
+  if (linkProperty) {
+    const [key, property] = linkProperty;
+    const value = propText(property);
+    const href = contactHref(property, value);
+
+    if (href) {
+      links.push({
+        label: platform !== "Untitled" ? platform : key,
+        value,
+        href
+      });
+    }
+  }
+
+  /*
+    FORMAT B:
+    Multiple platform properties in one page.
+  */
+
+  if (!links.length) {
+    properties.forEach(([key, property]) => {
+      if (property.type === "title") return;
+
+      const value = propText(property);
+      const href = contactHref(property, value);
+
+      if (!href) return;
+
+      links.push({
+        label: key,
+        value,
+        href
+      });
+    });
+  }
+
+  if (!links.length) {
+    return `
+      <p class="empty-state">
+        Contact information is not available yet.
+      </p>
+    `;
+  }
+
+  return `
+    <div class="contact-list">
+      ${links.map(item => {
+        const external = /^https?:/i.test(item.href);
+
+        return `
+          <a class="contact-link"
+            href="${esc(item.href)}"
+            ${external ? 'target="_blank" rel="noopener noreferrer"' : ''}>
+
+            ${contactLogo(item.label)}
+
+            <span class="contact-link-text">
+              <strong>${esc(item.label)}</strong>
+              <small>${esc(item.value)}</small>
+            </span>
+
+            <span class="contact-external">↗</span>
+          </a>
+        `;
+      }).join("")}
+    </div>
+  `;
 }
 
 
@@ -547,6 +706,11 @@ function applyProfile() {
 ========================================================= */
 
 function entryContent(page, source) {
+  // CONTACT ME
+  if (source === "contact") {
+    return contactMarkup(page);
+  }
+
   let output = "";
 
   if (source === "projects") {
@@ -885,12 +1049,12 @@ function closeSection() {
    INTERACTIONS
 ========================================================= */
 
-profileContact.addEventListener("click", () => {
+profileContact?.addEventListener("click", () => {
   openSection("contact");
 });
 
 
-exploreButton.addEventListener("click", () => {
+exploreButton?.addEventListener("click", () => {
   const isOpen = scene.classList.toggle("is-open");
 
   exploreButton.querySelector("span").textContent =
@@ -908,18 +1072,20 @@ document.querySelectorAll(".nav-card").forEach(card => {
 });
 
 
-closeButton.addEventListener("click", closeSection);
+closeButton?.addEventListener("click", closeSection);
 
-overlay.addEventListener("click", event => {
+overlay?.addEventListener("click", event => {
   if (event.target === overlay) closeSection();
 });
 
 
-/* Remove old on-screen sidebar arrows */
+/* REMOVE OLD SIDEBAR ARROWS */
+
 $("#sidebarUp")?.closest(".sidebar-controls")?.remove();
 
 
-/* Keyboard navigation */
+/* KEYBOARD NAVIGATION */
+
 document.addEventListener("keydown", event => {
   if (
     event.key === "Escape" &&
@@ -930,7 +1096,6 @@ document.addEventListener("keydown", event => {
   }
 
   if (!overlay.classList.contains("is-visible")) return;
-
   if (!isSectionReady(currentKey)) return;
 
   if (event.key === "ArrowDown") {
@@ -987,7 +1152,6 @@ async function fetchGroup(group) {
 
 /* =========================================================
    CRITICAL WORKER
-   PROFILE + FRONT IMAGE + SPREAD DATA
 ========================================================= */
 
 async function loadCritical() {
@@ -1005,9 +1169,7 @@ async function loadCritical() {
 
   updateProgress(45);
 
-  // Wait for front photo and brand logo.
   await preloadCriticalImages();
-
   await waitForFonts();
 
   updateProgress(97);
@@ -1018,7 +1180,6 @@ async function loadCritical() {
 
 /* =========================================================
    BACKGROUND WORKERS
-   ALL POPUP DATABASES
 ========================================================= */
 
 async function loadBackground() {
@@ -1039,9 +1200,9 @@ async function loadBackground() {
       Object.keys(data.databases)
     );
 
-    // Refresh an open popup when its data arrives.
     if (overlay.classList.contains("is-visible")) {
       activeEntries = getEntries(currentKey);
+
       activeIndex = Math.min(
         activeIndex,
         Math.max(0, activeEntries.length - 1)
@@ -1056,7 +1217,6 @@ async function loadBackground() {
   } catch (error) {
     console.error("Background loading error:", error);
 
-    // Do not block the rest of the portfolio.
     backgroundReady = true;
 
     prepareAllArticles();
@@ -1134,24 +1294,9 @@ function showLoadingError(error) {
 async function initializePortfolio() {
   updateProgress(5);
 
-  /*
-    Both workers start together.
-
-    Critical:
-    Profile, front photo, brand logo.
-
-    Background:
-    All popup databases.
-  */
-
   criticalTask = loadCritical();
 
   backgroundTask = loadBackground();
-
-  /*
-    Only critical data controls the initial screen.
-    Background loading never blocks the homepage.
-  */
 
   const timeoutTask = new Promise(resolve => {
     setTimeout(() => resolve("timeout"), MAX_LOADING_TIME);
