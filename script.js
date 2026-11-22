@@ -12,7 +12,7 @@ const API_URL = "/api/portfolio";
 const sections = {
   about: {
     number: "01",
-    title: "About me",
+    title: "About Me",
     databases: ["profile"],
     fallback: "Discover my background, professional focus, and personal journey."
   },
@@ -24,37 +24,43 @@ const sections = {
   },
   experience: {
     number: "03",
-    title: "Experience",
+    title: "Professional Experience",
     databases: ["experience"],
     fallback: "Professional experiences and responsibilities."
   },
   policy: {
     number: "04",
-    title: "Policy interests",
+    title: "Policy & Interests",
     databases: ["interests"],
     fallback: "Environmental policy, governance, and strategic management."
   },
   projects: {
     number: "05",
-    title: "Selected projects",
+    title: "Selected Projects",
     databases: ["projects"],
     fallback: "Projects and initiatives I have contributed to."
   },
   impact: {
     number: "06",
-    title: "Leadership & impact",
+    title: "Leadership & Impact",
     databases: ["leadership"],
     fallback: "Leadership, community engagement, and initiatives."
   },
   achievements: {
     number: "07",
-    title: "Achievements & Skills",
-    databases: ["achievements", "skills"],
-    fallback: "Certifications, achievements, and professional skills."
+    title: "Achievements & Certifications",
+    databases: ["achievements"],
+    fallback: "Awards, certifications, and recognition."
+  },
+  skills: {
+    number: "08",
+    title: "Skills & Expertise",
+    databases: ["skills"],
+    fallback: "Professional capabilities and areas of expertise."
   },
   contact: {
-    number: "08",
-    title: "Contact",
+    number: "09",
+    title: "Contact Me",
     databases: ["contact"],
     fallback: "Let's connect and explore opportunities to collaborate."
   }
@@ -81,25 +87,11 @@ function renderRichText(items = []) {
 
     const annotations = item.annotations || {};
 
-    if (annotations.code) {
-      text = `<code>${text}</code>`;
-    }
-
-    if (annotations.bold) {
-      text = `<strong>${text}</strong>`;
-    }
-
-    if (annotations.italic) {
-      text = `<em>${text}</em>`;
-    }
-
-    if (annotations.underline) {
-      text = `<u>${text}</u>`;
-    }
-
-    if (annotations.strikethrough) {
-      text = `<s>${text}</s>`;
-    }
+    if (annotations.code) text = `<code>${text}</code>`;
+    if (annotations.bold) text = `<strong>${text}</strong>`;
+    if (annotations.italic) text = `<em>${text}</em>`;
+    if (annotations.underline) text = `<u>${text}</u>`;
+    if (annotations.strikethrough) text = `<s>${text}</s>`;
 
     const url = item.href || item.text?.link?.url;
 
@@ -111,72 +103,7 @@ function renderRichText(items = []) {
   }).join("");
 }
 
-// DATABASE PROPERTY READER
-function extractText(value) {
-  if (!value) return "";
-
-  if (Array.isArray(value)) {
-    return value.map(item => item.plain_text || "").join("");
-  }
-
-  return "";
-}
-
-function extractProperty(property) {
-  if (!property) return "";
-
-  switch (property.type) {
-    case "title":
-      return extractText(property.title);
-
-    case "rich_text":
-      return extractText(property.rich_text);
-
-    case "number":
-      return property.number ?? "";
-
-    case "select":
-      return property.select?.name || "";
-
-    case "status":
-      return property.status?.name || "";
-
-    case "multi_select":
-      return property.multi_select?.map(item => item.name).join(", ") || "";
-
-    case "date":
-      return property.date?.end
-        ? `${property.date.start} – ${property.date.end}`
-        : property.date?.start || "";
-
-    case "url":
-      return property.url || "";
-
-    case "email":
-      return property.email || "";
-
-    case "phone_number":
-      return property.phone_number || "";
-
-    case "checkbox":
-      return property.checkbox ? "Yes" : "";
-
-    default:
-      return "";
-  }
-}
-
-function getPageTitle(properties) {
-  for (const property of Object.values(properties || {})) {
-    if (property.type === "title") {
-      return extractText(property.title);
-    }
-  }
-
-  return "Untitled";
-}
-
-// NOTION BLOCK CONTENT RENDERER
+// NOTION BLOCK RENDERER
 function renderBlock(block) {
   const type = block.type;
   const data = block[type] || {};
@@ -188,9 +115,7 @@ function renderBlock(block) {
 
   switch (type) {
     case "paragraph":
-      return richText
-        ? `<p>${richText}</p>${children}`
-        : children;
+      return richText ? `<p>${richText}</p>${children}` : children;
 
     case "heading_1":
       return `<h2>${richText}</h2>${children}`;
@@ -211,10 +136,10 @@ function renderBlock(block) {
       return `<blockquote>${richText}${children}</blockquote>`;
 
     case "callout":
-      return `<aside class="notion-callout">${renderRichText(data.rich_text || [])}${children}</aside>`;
+      return `<aside class="notion-callout">${richText}${children}</aside>`;
 
     case "divider":
-      return `<hr>`;
+      return "<hr>";
 
     case "to_do":
       return `<p class="notion-todo">${data.checked ? "☑" : "☐"} ${richText}</p>${children}`;
@@ -252,7 +177,6 @@ function renderBlocks(blocks = []) {
     if (!currentList) return;
 
     html += `<${currentList}>${listItems.join("")}</${currentList}>`;
-
     currentList = null;
     listItems = [];
   }
@@ -283,51 +207,33 @@ function renderBlocks(blocks = []) {
   }
 
   flushList();
-
   return html;
 }
 
-// RENDER EACH NOTION ENTRY
+// GET NOTION PAGE TITLE
+function getPageTitle(properties) {
+  for (const property of Object.values(properties || {})) {
+    if (property.type === "title") {
+      return (property.title || [])
+        .map(item => item.plain_text || "")
+        .join("");
+    }
+  }
+
+  return "Untitled";
+}
+
+// RENDER NOTION ENTRY
 function formatPage(page) {
-  const properties = page.properties || {};
-  const titleText = getPageTitle(properties);
-
-  const fields = Object.entries(properties)
-    .map(([name, property]) => ({
-      name,
-      value: extractProperty(property)
-    }))
-    .filter(item =>
-      item.value !== "" &&
-      item.value !== "No" &&
-      item.value !== titleText
-    );
-
-  const metadata = fields.length
-    ? `
-      <div class="notion-entry-meta">
-        ${fields.map(field => `
-          <p>
-            <strong>${escapeHTML(field.name)}:</strong>
-            ${escapeHTML(field.value)}
-          </p>
-        `).join("")}
-      </div>
-    `
-    : "";
+  const titleText = getPageTitle(page.properties);
 
   const pageContent = page.content?.length
-    ? `
-      <div class="notion-entry-content">
-        ${renderBlocks(page.content)}
-      </div>
-    `
+    ? `<div class="notion-entry-content">${renderBlocks(page.content)}</div>`
     : "";
 
   return `
     <article class="notion-entry">
       <h3>${escapeHTML(titleText)}</h3>
-      ${metadata}
       ${pageContent}
     </article>
   `;
@@ -348,7 +254,7 @@ function renderDatabase(name) {
   return database.results.map(formatPage).join("");
 }
 
-// RENDER PORTFOLIO SECTION
+// RENDER SECTION
 function renderSection(key) {
   const section = sections[key];
 
@@ -405,10 +311,8 @@ async function loadPortfolio() {
     }
 
     portfolioData = data;
-
     document.documentElement.classList.add("notion-connected");
 
-    // Refresh panel if it was opened before data finished loading
     if (overlay.classList.contains("is-visible")) {
       const activeSection = Object.keys(sections).find(
         key => title.textContent === sections[key].title
@@ -419,7 +323,7 @@ async function loadPortfolio() {
       }
     }
 
-    console.log("Portfolio data loaded successfully", data);
+    console.log("Portfolio data loaded successfully");
 
   } catch (error) {
     console.error("Portfolio loading error:", error);
@@ -427,7 +331,7 @@ async function loadPortfolio() {
   }
 }
 
-// ORBIT NAVIGATION
+// EXPLORE BUTTON
 exploreButton.addEventListener("click", () => {
   const isOpen = scene.classList.toggle("is-open");
 
@@ -438,20 +342,24 @@ exploreButton.addEventListener("click", () => {
     isOpen ? "×" : "↗";
 });
 
+// NAVIGATION CARDS
 document.querySelectorAll(".nav-card").forEach(card => {
   card.addEventListener("click", () => {
     openSection(card.dataset.section);
   });
 });
 
+// CLOSE BUTTON
 closeButton.addEventListener("click", closeSection);
 
+// CLOSE WHEN CLICKING OUTSIDE PANEL
 overlay.addEventListener("click", event => {
   if (event.target === overlay) {
     closeSection();
   }
 });
 
+// ESCAPE KEY
 document.addEventListener("keydown", event => {
   if (
     event.key === "Escape" &&
@@ -461,5 +369,5 @@ document.addEventListener("keydown", event => {
   }
 });
 
+// INITIALIZE
 loadPortfolio();
-
